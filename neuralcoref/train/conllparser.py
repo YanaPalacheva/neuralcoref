@@ -7,7 +7,9 @@ import os
 import io
 import pickle
 
-import spacy
+# import spacy
+import stanza
+from spacy_stanza import StanzaLanguage
 
 import numpy as np
 
@@ -37,7 +39,8 @@ NORMALIZE_DICT = {
     "-RSB-": "]",
 }
 
-CONLL_GENRES = {"bc": 0, "bn": 1, "mz": 2, "nw": 3, "pt": 4, "tc": 5, "wb": 6}
+CONLL_GENRES = {"ion": 0, "ics": 1, "nta": 2, "aru": 3, "bru": 4, "ews": 5, "sru": 6,
+		"ofc": 1, "ora": 2, "yvy": 3, "scr": 4, "nce": 5, "iki": 6}
 
 FEATURES_NAMES = [
     "mentions_features",  # 0
@@ -568,7 +571,9 @@ class ConllCorpus(object):
     def __init__(
         self,
         n_jobs=4,
-        embed_path=PACKAGE_DIRECTORY + "/weights/",
+        # todo: add locales to distinguish
+        # embed_path=PACKAGE_DIRECTORY + "/en_embeddings/",
+        embed_path=PACKAGE_DIRECTORY + "/ru_embeddings/",
         gold_mentions=False,
         blacklist=False,
     ):
@@ -743,28 +748,36 @@ class ConllCorpus(object):
                     blacklist=self.blacklist,
                     consider_speakers=True,
                     embedding_extractor=self.embed_extractor,
-                    conll=CONLL_GENRES[name[:2]],
+                    conll=CONLL_GENRES[name[:3]],
                 )
             )
-        print("🌋 Loading spacy model")
+        print("🌋 Loading spacy (stanza) model")
 
-        if model is None:
-            model_options = ["en_core_web_lg", "en_core_web_md", "en_core_web_sm", "en"]
-            for model_option in model_options:
-                if not model:
-                    try:
-                        spacy.info(model_option)
-                        model = model_option
-                        print("Loading model", model_option)
-                    except:
-                        print("Could not detect model", model_option)
-            if not model:
-                print("Could not detect any suitable English model")
-                return
-        else:
-            spacy.info(model)
-            print("Loading model", model)
-        nlp = spacy.load(model)
+        # if model is None:
+        #     model_options = ["en_core_web_lg", "en_core_web_md", "en_core_web_sm", "en"]
+        #     for model_option in model_options:
+        #         if not model:
+        #             try:
+        #                 spacy.info(model_option)
+        #                 model = model_option
+        #                 print("Loading model", model_option)
+        #             except:
+        #                 print("Could not detect model", model_option)
+        #     if not model:
+        #         print("Could not detect any suitable English model")
+        #         return
+        # else:
+        #     spacy.info(model)
+        #     print("Loading model", model)
+
+        try:
+            snlp = stanza.Pipeline(lang="ru")
+        except stanza.pipeline.core.ResourcesFileNotFoundError:
+            print("Russian model not downloaded, please run: python >>>import stanza >>>stanza.download(\"ru\")")
+            raise
+        nlp = StanzaLanguage(snlp)
+
+        # nlp = spacy.load(model)
         print(
             "🌋 Parsing utterances and filling docs with use_gold_mentions="
             + (str(bool(self.gold_mentions)))
